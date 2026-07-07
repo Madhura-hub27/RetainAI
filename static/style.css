@@ -1,0 +1,414 @@
+/* ============================================================
+   PulseIQ — Design tokens
+   Palette: ink navy surface, single amber "signal" accent,
+   teal/coral for sentiment. Display serif (Fraunces) for
+   headings against a clean grotesk (IBM Plex Sans) body —
+   the pairing reads like an analyst's report, not a generic
+   SaaS dashboard.
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap');
+
+:root {
+  --ink: #0c1016;
+  --surface: #141a24;
+  --surface-raised: #1b2330;
+  --border: #262f3f;
+  --border-soft: #1e2634;
+
+  --text-primary: #eceef2;
+  --text-secondary: #8892a4;
+  --text-muted: #5b6478;
+
+  --accent: #e3a53f;       /* signal amber — brand + primary actions */
+  --accent-dim: #7a6335;
+  --accent-ink: #241d0c;   /* text-on-accent */
+
+  --positive: #3fbf8f;
+  --positive-bg: #12291f;
+  --positive-text: #7fe0bb;
+
+  --negative: #e2665a;
+  --negative-bg: #2b1615;
+  --negative-text: #f0968c;
+
+  --neutral: #d9ab4f;
+  --neutral-bg: #2b2213;
+  --neutral-text: #edc887;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-body: 'IBM Plex Sans', 'Segoe UI', sans-serif;
+  --font-mono: 'IBM Plex Mono', 'Consolas', monospace;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  background: var(--ink);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  min-height: 100vh;
+}
+
+::selection { background: var(--accent-dim); color: var(--text-primary); }
+
+a { color: inherit; }
+
+/* ---------- Signature motif: the pulse line ---------- */
+/* A thin waveform used once, deliberately, as the brand mark
+   and again as a quiet header watermark. Not repeated as decoration
+   elsewhere. */
+
+.pulse-mark {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+}
+
+.pulse-watermark {
+  position: absolute;
+  right: 0;
+  top: 0;
+  height: 100%;
+  width: 45%;
+  max-width: 480px;
+  opacity: 0.18;
+  pointer-events: none;
+}
+
+/* ---------- Header / nav (shared across app pages) ---------- */
+
+.app-header {
+  position: relative;
+  overflow: hidden;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 22px 36px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  position: relative;
+  z-index: 1;
+}
+
+.brand-text h1 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 22px;
+  letter-spacing: 0.01em;
+  color: var(--text-primary);
+}
+
+.brand-text p {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+  letter-spacing: 0.02em;
+}
+
+.app-nav {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  position: relative;
+  z-index: 1;
+}
+
+.app-nav a, .app-nav button {
+  padding: 9px 16px;
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: 13.5px;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.app-nav a:hover, .app-nav button:hover {
+  color: var(--text-primary);
+  border-color: var(--border);
+}
+
+.app-nav a.active {
+  color: var(--accent-ink);
+  background: var(--accent);
+  font-weight: 600;
+}
+
+.app-nav button.logout-btn {
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+
+/* ---------- Layout ---------- */
+
+.container { max-width: 640px; margin: 44px auto; padding: 0 20px; }
+.container-wide { max-width: 1120px; margin: 34px auto; padding: 0 20px; }
+
+.card {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  padding: 28px;
+  border: 1px solid var(--border);
+}
+
+.card h2 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 19px;
+  margin-bottom: 18px;
+  color: var(--text-primary);
+}
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 6px;
+  display: block;
+}
+
+/* ---------- Form elements ---------- */
+
+label {
+  display: block;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+
+input, select, textarea {
+  width: 100%;
+  padding: 11px 13px;
+  margin-bottom: 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--ink);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 14px;
+}
+
+input::placeholder, textarea::placeholder { color: var(--text-muted); }
+
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+textarea { resize: vertical; min-height: 110px; }
+
+button.primary, .submit-btn {
+  width: 100%;
+  padding: 13px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 600;
+  font-size: 14.5px;
+  font-family: var(--font-body);
+  cursor: pointer;
+  transition: filter 0.15s ease;
+}
+
+button.primary:hover, .submit-btn:hover { filter: brightness(1.08); }
+button.primary:active, .submit-btn:active { filter: brightness(0.95); }
+
+/* ---------- Badges ---------- */
+
+.badge {
+  padding: 3px 11px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  letter-spacing: 0.02em;
+}
+.badge.Negative { background: var(--negative-bg); color: var(--negative-text); }
+.badge.Positive { background: var(--positive-bg); color: var(--positive-text); }
+.badge.Neutral  { background: var(--neutral-bg);  color: var(--neutral-text); }
+
+.risk-high { color: var(--negative-text); font-weight: 600; font-family: var(--font-mono); }
+.risk-mid  { color: var(--neutral-text);  font-weight: 600; font-family: var(--font-mono); }
+.risk-low  { color: var(--positive-text); font-weight: 600; font-family: var(--font-mono); }
+
+/* ---------- Result / feedback panels ---------- */
+
+#result-box {
+  margin-top: 20px;
+  padding: 18px;
+  background: var(--surface-raised);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-soft);
+  border-left: 3px solid var(--accent);
+  display: none;
+  font-size: 14px;
+  line-height: 1.7;
+}
+#result-box b { color: var(--text-secondary); font-weight: 500; font-size: 12.5px; text-transform: uppercase; letter-spacing: 0.03em; }
+
+/* ---------- Auth pages ---------- */
+
+.auth-shell {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ink);
+  position: relative;
+  overflow: hidden;
+}
+
+.auth-box {
+  position: relative;
+  z-index: 1;
+  background: var(--surface);
+  padding: 40px 36px;
+  border-radius: var(--radius-lg);
+  width: 370px;
+  border: 1px solid var(--border);
+  box-shadow: 0 24px 60px rgba(0,0,0,0.45);
+}
+
+.auth-box .logo-mark { display: flex; justify-content: center; margin-bottom: 16px; }
+.auth-box .logo-mark svg { width: 40px; height: 40px; }
+
+.auth-box h2 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  text-align: center;
+  font-size: 22px;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+.auth-box p { text-align: center; color: var(--text-secondary); font-size: 13px; margin-bottom: 28px; }
+
+.msg, .error { font-size: 13px; text-align: center; margin-top: 10px; display: none; }
+.error { color: var(--negative-text); }
+.success { color: var(--positive-text); }
+
+.link { text-align: center; margin-top: 18px; font-size: 13px; color: var(--text-secondary); }
+.link a { color: var(--accent); text-decoration: none; cursor: pointer; font-weight: 500; }
+
+.password-wrapper { position: relative; }
+.password-wrapper input { padding-right: 42px; }
+.password-wrapper span {
+  position: absolute; right: 13px; top: 12px; cursor: pointer; font-size: 15px; color: var(--text-muted);
+}
+
+/* ---------- Stats / dashboard ---------- */
+
+.stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 22px; }
+.stat-box {
+  background: var(--surface);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  text-align: center;
+  border: 1px solid var(--border);
+}
+.stat-box .val {
+  font-family: var(--font-mono);
+  font-size: 30px;
+  font-weight: 600;
+  color: var(--accent);
+}
+.stat-box .label { font-size: 12.5px; color: var(--text-secondary); margin-top: 6px; letter-spacing: 0.02em; }
+
+.alert-box {
+  background: var(--negative-bg);
+  border: 1px solid rgba(226,102,90,0.35);
+  border-radius: var(--radius-md);
+  padding: 18px 22px;
+  margin-bottom: 22px;
+  display: none;
+}
+.alert-box h3 { font-family: var(--font-display); font-weight: 600; color: var(--negative-text); font-size: 15px; margin-bottom: 10px; }
+.alert-box .emp { font-size: 13px; color: #f0c3bd; margin-bottom: 4px; }
+
+.feedback-item {
+  background: var(--surface-raised);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  border-left: 3px solid var(--text-muted);
+}
+.feedback-item.Negative { border-left-color: var(--negative); }
+.feedback-item.Positive { border-left-color: var(--positive); }
+.feedback-item.Neutral  { border-left-color: var(--neutral); }
+.feedback-item .top-row { display: flex; justify-content: space-between; font-size: 13px; color: var(--text-secondary); margin-bottom: 6px; }
+.feedback-item .summary { font-size: 14px; color: var(--text-primary); }
+
+.empty { text-align: center; color: var(--text-muted); padding: 34px 0; font-size: 14px; }
+
+/* ---------- History table ---------- */
+
+.filters { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+.filters input, .filters select { margin-bottom: 0; }
+.filters input { flex: 1; min-width: 200px; }
+
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 12px; border-bottom: 1px solid var(--border-soft); font-size: 13.5px; }
+th { color: var(--text-secondary); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
+td { color: var(--text-primary); }
+
+.card.table-card { overflow-x: auto; }
+
+/* ---------- Analytics grid ---------- */
+
+.analytics-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 22px;
+}
+@media (max-width: 720px) { .analytics-grid { grid-template-columns: 1fr; } }
+
+/* ---------- Chat widget ---------- */
+
+#chat-widget { position: fixed; bottom: 26px; right: 26px; z-index: 1000; }
+#chat-toggle-btn {
+  width: 54px; height: 54px; border-radius: 50%; border: none;
+  background: var(--accent); color: var(--accent-ink);
+  font-size: 20px; cursor: pointer; box-shadow: 0 6px 22px rgba(227,165,63,0.35);
+  display: flex; align-items: center; justify-content: center;
+}
+#chat-window {
+  display: none; position: absolute; bottom: 66px; right: 0;
+  width: 340px; height: 440px; background: var(--surface); border-radius: var(--radius-lg);
+  border: 1px solid var(--border); flex-direction: column; overflow: hidden;
+  box-shadow: 0 16px 50px rgba(0,0,0,0.5);
+}
+#chat-window.open { display: flex; }
+#chat-header {
+  background: var(--surface-raised); color: var(--text-primary); border-bottom: 1px solid var(--border);
+  padding: 14px 16px; font-weight: 600; font-family: var(--font-display); font-size: 15px;
+  display: flex; justify-content: space-between; align-items: center;
+}
+#chat-header span { cursor: pointer; color: var(--text-muted); }
+#chat-messages { flex: 1; padding: 14px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+.chat-msg { padding: 10px 12px; border-radius: var(--radius-sm); font-size: 13px; max-width: 85%; line-height: 1.45; }
+.chat-msg.user { background: var(--accent); color: var(--accent-ink); align-self: flex-end; font-weight: 500; }
+.chat-msg.bot { background: var(--surface-raised); color: var(--text-primary); align-self: flex-start; border: 1px solid var(--border-soft); }
+#chat-input-row { display: flex; border-top: 1px solid var(--border); }
+#chat-input { flex: 1; padding: 12px; border: none; background: var(--ink); color: var(--text-primary); font-size: 13px; font-family: var(--font-body); }
+#chat-input:focus { outline: none; }
+#chat-input-row button { width: 48px; border: none; background: var(--surface-raised); color: var(--accent); font-size: 17px; cursor: pointer; }

@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PulseIQ - History</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<script>
+  if (sessionStorage.getItem("loggedIn") !== "true") {
+    window.location.href = "login.html";
+  }
+</script>
+
+<header class="app-header">
+  <svg class="pulse-watermark" viewBox="0 0 480 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M0 50 H140 L160 15 L190 85 L215 50 H480" stroke="#e3a53f" stroke-width="1.5" fill="none"/>
+  </svg>
+  <div class="brand">
+    <svg class="pulse-mark" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="1" y="1" width="38" height="38" rx="9" stroke="#e3a53f" stroke-width="1.5"/>
+      <path d="M4 20H12L15 10L21 30L24 20H36" stroke="#e3a53f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <div class="brand-text">
+      <h1>PulseIQ</h1>
+      <p>Employee Feedback Intelligence</p>
+    </div>
+  </div>
+  <nav class="app-nav">
+    <a href="index.html">Submit</a>
+    <a href="dashboard.html">Dashboard</a>
+    <a href="history.html" class="active">History</a>
+    <a href="analytics.html">Analytics</a>
+    <button class="logout-btn" onclick="logout()">Logout</button>
+  </nav>
+</header>
+
+<div class="container-wide">
+
+  <div class="filters">
+    <input type="text" id="search-box" placeholder="Search by employee name..." oninput="renderTable()">
+    <select id="dept-filter" onchange="renderTable()">
+      <option value="">All departments</option>
+      <option>Engineering</option>
+      <option>Sales</option>
+      <option>Marketing</option>
+      <option>HR</option>
+      <option>Finance</option>
+      <option>Operations</option>
+    </select>
+    <select id="sentiment-filter" onchange="renderTable()">
+      <option value="">All sentiments</option>
+      <option>Positive</option>
+      <option>Negative</option>
+      <option>Neutral</option>
+    </select>
+    <select id="sort-filter" onchange="renderTable()">
+      <option value="newest">Newest first</option>
+      <option value="risk-high">Highest risk first</option>
+      <option value="risk-low">Lowest risk first</option>
+    </select>
+    <button class="primary" style="width:auto; padding:10px 18px;" onclick="exportCSV()">Export CSV</button>
+  </div>
+
+  <div class="card table-card">
+    <table>
+      <thead>
+        <tr>
+          <th>Employee</th>
+          <th>Department</th>
+          <th>Sentiment</th>
+          <th>Category</th>
+          <th>Risk score</th>
+          <th>Summary</th>
+        </tr>
+      </thead>
+      <tbody id="table-body"></tbody>
+    </table>
+    <div class="empty" id="empty-msg" style="display:none;">No feedback records found.</div>
+  </div>
+
+</div>
+
+<script>
+const API = window.location.origin;
+let allFeedback = [];
+
+async function loadHistory() {
+  try {
+    const res = await fetch(`${API}/all-feedback`);
+    const data = await res.json();
+    allFeedback = data.feedback;
+    renderTable();
+  } catch (err) {
+    console.error("Error loading history:", err);
+    document.getElementById("empty-msg").innerText = "Error loading data: " + err;
+    document.getElementById("empty-msg").style.display = "block";
+  }
+}
+
+function riskClass(score) {
+  if (score >= 70) return "risk-high";
+  if (score >= 40) return "risk-mid";
+  return "risk-low";
+}
+
+function renderTable() {
+  const search = document.getElementById("search-box").value.toLowerCase();
+  const dept = document.getElementById("dept-filter").value;
+  const sentiment = document.getElementById("sentiment-filter").value;
+  const sort = document.getElementById("sort-filter").value;
+
+  let filtered = allFeedback.filter(item => {
+    const matchSearch = item.employee_name.toLowerCase().includes(search);
+    const matchDept = dept ? item.department === dept : true;
+    const matchSentiment = sentiment ? item.sentiment === sentiment : true;
+    return matchSearch && matchDept && matchSentiment;
+  });
+
+  if (sort === "risk-high") filtered.sort((a,b) => b.risk_score - a.risk_score);
+  else if (sort === "risk-low") filtered.sort((a,b) => a.risk_score - b.risk_score);
+  else filtered.reverse();
+
+  const tbody = document.getElementById("table-body");
+  const emptyMsg = document.getElementById("empty-msg");
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = "";
+    emptyMsg.style.display = "block";
+    return;
+  }
+  emptyMsg.style.display = "none";
+
+  tbody.innerHTML = filtered.map(item => `
+    <tr>
+      <td>${item.employee_name}</td>
+      <td>${item.department}</td>
+      <td><span class="badge ${item.sentiment}">${item.sentiment}</span></td>
+      <td>${item.category}</td>
+      <td class="${riskClass(item.risk_score)}">${item.risk_score}/100</td>
+      <td>${item.summary}</td>
+    </tr>
+  `).join("");
+}
+
+function logout() {
+  sessionStorage.removeItem("loggedIn");
+  window.location.href = "login.html";
+}
+
+function exportCSV() {
+  if (!allFeedback.length) {
+    alert("No feedback to export yet.");
+    return;
+  }
+  const headers = ["Employee", "Department", "Sentiment", "Category", "Risk Score", "Summary", "Recommended Action", "Submitted At"];
+  const rows = allFeedback.map(item => [
+    item.employee_name, item.department, item.sentiment, item.category,
+    item.risk_score, item.summary, item.recommended_action, item.created_at
+  ]);
+
+  const escapeCell = (val) => `"${String(val ?? "").replace(/"/g, '""')}"`;
+  const csv = [headers.map(escapeCell).join(","), ...rows.map(r => r.map(escapeCell).join(","))].join("\n");
+
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `pulseiq-feedback-${new Date().toISOString().slice(0,10)}.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+loadHistory();
+</script>
+
+</body>
+</html>

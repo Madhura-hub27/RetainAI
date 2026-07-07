@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PulseIQ - Submit Feedback</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<script>
+  if (sessionStorage.getItem("loggedIn") !== "true") {
+    window.location.href = "login.html";
+  }
+</script>
+
+<header class="app-header">
+  <svg class="pulse-watermark" viewBox="0 0 480 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M0 50 H140 L160 15 L190 85 L215 50 H480" stroke="#e3a53f" stroke-width="1.5" fill="none"/>
+  </svg>
+  <div class="brand">
+    <svg class="pulse-mark" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="1" y="1" width="38" height="38" rx="9" stroke="#e3a53f" stroke-width="1.5"/>
+      <path d="M4 20H12L15 10L21 30L24 20H36" stroke="#e3a53f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <div class="brand-text">
+      <h1>PulseIQ</h1>
+      <p>Employee Feedback Intelligence</p>
+    </div>
+  </div>
+  <nav class="app-nav">
+    <a href="index.html" class="active">Submit</a>
+    <a href="dashboard.html">Dashboard</a>
+    <a href="history.html">History</a>
+    <a href="analytics.html">Analytics</a>
+    <button class="logout-btn" onclick="logout()">Logout</button>
+  </nav>
+</header>
+
+<div class="container">
+  <div class="card">
+    <span class="eyebrow">New submission</span>
+    <h2>Submit Employee Feedback</h2>
+
+    <label for="employee_name">Employee name</label>
+    <input type="text" id="employee_name" placeholder="e.g. Priya Raman">
+
+    <label for="department">Department</label>
+    <select id="department">
+      <option>Engineering</option>
+      <option>Sales</option>
+      <option>Marketing</option>
+      <option>HR</option>
+      <option>Finance</option>
+      <option>Operations</option>
+    </select>
+
+    <label for="feedback_text">Feedback</label>
+    <textarea id="feedback_text" placeholder="Type feedback here..."></textarea>
+
+    <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin-bottom:18px;">
+      <input type="checkbox" id="anonymous" style="width:auto; margin:0;">
+      <span style="font-size:13px; color:var(--text-secondary);">Submit anonymously (name hidden from HR reports)</span>
+    </label>
+
+    <button class="submit-btn" onclick="submitFeedback()">Analyze &amp; submit</button>
+
+    <div id="result-box"></div>
+  </div>
+</div>
+
+<div id="chat-widget">
+  <button id="chat-toggle-btn" onclick="toggleChat()">&#9679;</button>
+  <div id="chat-window">
+    <div id="chat-header">
+      Ask PulseIQ
+      <span onclick="toggleChat()">&#10005;</span>
+    </div>
+    <div id="chat-messages"></div>
+    <div id="chat-input-row">
+      <input type="text" id="chat-input" placeholder="Ask about feedback trends...">
+      <button onclick="sendChatMessage()">&#10148;</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = window.location.origin;
+
+async function submitFeedback() {
+  const employee_name = document.getElementById("employee_name").value;
+  const department = document.getElementById("department").value;
+  const feedback_text = document.getElementById("feedback_text").value;
+  const anonymous = document.getElementById("anonymous").checked;
+
+  if (!employee_name || !feedback_text) {
+    alert("Please fill employee name and feedback");
+    return;
+  }
+
+  const resultBox = document.getElementById("result-box");
+  resultBox.style.display = "block";
+  resultBox.innerHTML = "Analyzing with AI...";
+
+  try {
+    const res = await fetch(`${API}/submit-feedback`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ employee_name, department, feedback_text, anonymous })
+    });
+    const data = await res.json();
+    const a = data.analysis;
+
+    resultBox.innerHTML = `
+      <b>Sentiment</b><br>${a.sentiment} &nbsp; <span class="badge ${a.sentiment}">${a.sentiment}</span><br><br>
+      <b>Category</b><br>${a.category}<br><br>
+      <b>Risk score</b><br>${a.risk_score}/100<br><br>
+      <b>Summary</b><br>${a.summary}<br><br>
+      <b>Recommended action</b><br>${a.recommended_action}
+    `;
+
+    document.getElementById("employee_name").value = "";
+    document.getElementById("feedback_text").value = "";
+    document.getElementById("anonymous").checked = false;
+
+  } catch (err) {
+    resultBox.innerHTML = "Error: " + err;
+  }
+}
+
+function logout() {
+  sessionStorage.removeItem("loggedIn");
+  window.location.href = "login.html";
+}
+
+function toggleChat() {
+  document.getElementById("chat-window").classList.toggle("open");
+}
+
+async function sendChatMessage() {
+  const input = document.getElementById("chat-input");
+  const question = input.value.trim();
+  if (!question) return;
+
+  const messagesDiv = document.getElementById("chat-messages");
+  messagesDiv.innerHTML += `<div class="chat-msg user">${question}</div>`;
+  input.value = "";
+  messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+  messagesDiv.innerHTML += `<div class="chat-msg bot" id="typing-msg">Thinking...</div>`;
+  messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+  try {
+    const res = await fetch(`${API}/ask-agent`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question })
+    });
+    const data = await res.json();
+
+    document.getElementById("typing-msg").remove();
+    messagesDiv.innerHTML += `<div class="chat-msg bot">${data.answer}</div>`;
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+  } catch (err) {
+    document.getElementById("typing-msg").innerText = "Error getting response";
+  }
+}
+
+document.getElementById("chat-input").addEventListener("keypress", function(e) {
+  if (e.key === "Enter") sendChatMessage();
+});
+</script>
+
+</body>
+</html>

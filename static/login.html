@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PulseIQ - HR Login</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="auth-shell">
+  <svg class="pulse-watermark" style="width:60%;max-width:700px;" viewBox="0 0 700 200" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M0 100 H250 L280 40 L320 160 L350 100 H700" stroke="#e3a53f" stroke-width="1.5" fill="none"/>
+  </svg>
+  <div class="auth-box">
+    <div class="logo-mark">
+      <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="1" y="1" width="38" height="38" rx="9" stroke="#e3a53f" stroke-width="1.5"/>
+        <path d="M4 20H12L15 10L21 30L24 20H36" stroke="#e3a53f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <h2>PulseIQ</h2>
+    <p>HR Login &mdash; Employee Feedback Intelligence</p>
+
+    <label for="username">Username</label>
+    <input type="text" id="username" placeholder="Username">
+
+    <label for="password">Password</label>
+    <div class="password-wrapper">
+      <input type="password" id="password" placeholder="Password">
+      <span onclick="togglePassword('password', this)">Show</span>
+    </div>
+
+    <button class="primary" onclick="login()">Login</button>
+    <div class="error" id="error-msg"></div>
+
+    <div class="link">New user? <a onclick="window.location.href='register.html'">Register here</a></div>
+  </div>
+</div>
+
+<script>
+const API = window.location.origin;
+
+function togglePassword(fieldId, icon) {
+  const field = document.getElementById(fieldId);
+  if (field.type === "password") {
+    field.type = "text";
+    icon.textContent = "Hide";
+  } else {
+    field.type = "password";
+    icon.textContent = "Show";
+  }
+}
+
+async function login() {
+  const username = document.getElementById("username").value.trim();
+  const password = document.getElementById("password").value;
+  const errorMsg = document.getElementById("error-msg");
+  errorMsg.style.display = "none";
+
+  if (!username || !password) {
+    errorMsg.innerText = "Please enter username and password";
+    errorMsg.style.display = "block";
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API}/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password })
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      errorMsg.innerText = data.detail || "Login failed";
+      errorMsg.style.display = "block";
+      return;
+    }
+
+    sessionStorage.setItem("loggedIn", "true");
+    sessionStorage.setItem("username", data.username);
+    window.location.href = "index.html";
+
+  } catch (err) {
+    errorMsg.innerText = "Server error, try again";
+    errorMsg.style.display = "block";
+  }
+}
+
+document.addEventListener("keypress", function(e) {
+  if (e.key === "Enter") login();
+});
+</script>
+
+</body>
+</html>

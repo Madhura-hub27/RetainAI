@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PulseIQ - Analytics</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<script>
+  if (sessionStorage.getItem("loggedIn") !== "true") {
+    window.location.href = "login.html";
+  }
+</script>
+
+<header class="app-header">
+  <svg class="pulse-watermark" viewBox="0 0 480 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M0 50 H140 L160 15 L190 85 L215 50 H480" stroke="#e3a53f" stroke-width="1.5" fill="none"/>
+  </svg>
+  <div class="brand">
+    <svg class="pulse-mark" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="1" y="1" width="38" height="38" rx="9" stroke="#e3a53f" stroke-width="1.5"/>
+      <path d="M4 20H12L15 10L21 30L24 20H36" stroke="#e3a53f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <div class="brand-text">
+      <h1>PulseIQ</h1>
+      <p>Feedback trends &amp; risk breakdown</p>
+    </div>
+  </div>
+  <nav class="app-nav">
+    <a href="index.html">Submit</a>
+    <a href="dashboard.html">Dashboard</a>
+    <a href="history.html">History</a>
+    <a href="analytics.html" class="active">Analytics</a>
+    <button class="logout-btn" onclick="logout()">Logout</button>
+  </nav>
+</header>
+
+<div class="container-wide">
+  <div class="card" id="trend-card" style="margin-bottom:22px; display:none;">
+    <span class="eyebrow">Signal</span>
+    <h2 id="trend-heading">Risk trend</h2>
+    <p id="trend-text" style="font-size:14px; color:var(--text-secondary); line-height:1.6;"></p>
+  </div>
+
+  <div class="analytics-grid">
+    <div class="card">
+      <h2>Sentiment breakdown</h2>
+      <canvas id="sentimentChart"></canvas>
+    </div>
+    <div class="card">
+      <h2>Feedback by category</h2>
+      <canvas id="categoryChart"></canvas>
+    </div>
+    <div class="card" style="grid-column: 1 / -1;">
+      <h2>Average risk score by department</h2>
+      <canvas id="departmentChart"></canvas>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = window.location.origin;
+
+async function loadCharts() {
+  const res = await fetch(`${API}/dashboard-stats`);
+  const stats = await res.json();
+
+  const trend = stats.risk_trend;
+  if (trend && trend.direction) {
+    const card = document.getElementById("trend-card");
+    const heading = document.getElementById("trend-heading");
+    const text = document.getElementById("trend-text");
+    card.style.display = "block";
+    if (trend.direction === "up") {
+      card.style.borderLeft = "3px solid var(--negative)";
+      heading.textContent = "Risk is trending up";
+      text.textContent = `Average risk score moved from ${trend.earlier_avg} to ${trend.recent_avg} across submissions. Worth a closer look at recent feedback before it compounds.`;
+    } else if (trend.direction === "down") {
+      card.style.borderLeft = "3px solid var(--positive)";
+      heading.textContent = "Risk is trending down";
+      text.textContent = `Average risk score improved from ${trend.earlier_avg} to ${trend.recent_avg} across submissions. Whatever changed recently seems to be working.`;
+    } else {
+      card.style.borderLeft = "3px solid var(--neutral)";
+      heading.textContent = "Risk is holding steady";
+      text.textContent = `Average risk score is stable, moving from ${trend.earlier_avg} to ${trend.recent_avg} across submissions.`;
+    }
+  }
+
+  const sentimentLabels = Object.keys(stats.sentiment_breakdown || {});
+  const sentimentValues = Object.values(stats.sentiment_breakdown || {});
+
+  new Chart(document.getElementById("sentimentChart"), {
+    type: "pie",
+    data: {
+      labels: sentimentLabels,
+      datasets: [{
+        data: sentimentValues,
+        backgroundColor: ["#e2665a", "#3fbf8f", "#d9ab4f"],
+        borderColor: "#141a24",
+        borderWidth: 2
+      }]
+    },
+    options: {
+      plugins: { legend: { labels: { color: "#eceef2", font: { family: "IBM Plex Sans" } } } }
+    }
+  });
+
+  const categoryLabels = Object.keys(stats.category_breakdown || {});
+  const categoryValues = Object.values(stats.category_breakdown || {});
+
+  new Chart(document.getElementById("categoryChart"), {
+    type: "bar",
+    data: {
+      labels: categoryLabels,
+      datasets: [{
+        label: "Feedback count",
+        data: categoryValues,
+        backgroundColor: "#e3a53f",
+        borderRadius: 4
+      }]
+    },
+    options: {
+      scales: {
+        x: { ticks: { color: "#8892a4", font: { family: "IBM Plex Sans" } }, grid: { color: "#1e2634" } },
+        y: { ticks: { color: "#8892a4", font: { family: "IBM Plex Sans" } }, beginAtZero: true, grid: { color: "#1e2634" } }
+      },
+      plugins: { legend: { display: false } }
+    }
+  });
+
+  const deptLabels = Object.keys(stats.department_risk_breakdown || {});
+  const deptValues = Object.values(stats.department_risk_breakdown || {});
+
+  new Chart(document.getElementById("departmentChart"), {
+    type: "bar",
+    data: {
+      labels: deptLabels,
+      datasets: [{
+        label: "Avg risk score",
+        data: deptValues,
+        backgroundColor: deptValues.map(v => v >= 70 ? "#e2665a" : v >= 40 ? "#d9ab4f" : "#3fbf8f"),
+        borderRadius: 4
+      }]
+    },
+    options: {
+      indexAxis: "y",
+      scales: {
+        x: { ticks: { color: "#8892a4", font: { family: "IBM Plex Sans" } }, grid: { color: "#1e2634" }, min: 0, max: 100 },
+        y: { ticks: { color: "#eceef2", font: { family: "IBM Plex Sans" } }, grid: { display: false } }
+      },
+      plugins: { legend: { display: false } }
+    }
+  });
+}
+
+function logout() {
+  sessionStorage.removeItem("loggedIn");
+  window.location.href = "login.html";
+}
+
+loadCharts();
+</script>
+
+</body>
+</html>

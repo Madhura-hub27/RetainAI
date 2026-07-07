@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PulseIQ - Dashboard</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<script>
+  if (sessionStorage.getItem("loggedIn") !== "true") {
+    window.location.href = "login.html";
+  }
+</script>
+
+<header class="app-header">
+  <svg class="pulse-watermark" viewBox="0 0 480 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M0 50 H140 L160 15 L190 85 L215 50 H480" stroke="#e3a53f" stroke-width="1.5" fill="none"/>
+  </svg>
+  <div class="brand">
+    <svg class="pulse-mark" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="1" y="1" width="38" height="38" rx="9" stroke="#e3a53f" stroke-width="1.5"/>
+      <path d="M4 20H12L15 10L21 30L24 20H36" stroke="#e3a53f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <div class="brand-text">
+      <h1>PulseIQ</h1>
+      <p>Employee Feedback Intelligence</p>
+    </div>
+  </div>
+  <nav class="app-nav">
+    <a href="index.html">Submit</a>
+    <a href="dashboard.html" class="active">Dashboard</a>
+    <a href="history.html">History</a>
+    <a href="analytics.html">Analytics</a>
+    <button class="logout-btn" onclick="logout()">Logout</button>
+  </nav>
+</header>
+
+<div class="container-wide">
+
+  <div class="stats-row">
+    <div class="stat-box"><div class="val" id="total-count">0</div><div class="label">Total feedback</div></div>
+    <div class="stat-box"><div class="val" id="avg-risk">0</div><div class="label">Avg risk score</div></div>
+    <div class="stat-box"><div class="val" id="negative-count">0</div><div class="label">Negative cases</div></div>
+  </div>
+
+  <div class="alert-box" id="alert-box">
+    <h3>High attrition risk detected</h3>
+    <div id="alert-list"></div>
+  </div>
+
+  <div class="card">
+    <h2>Recent feedback</h2>
+    <div id="feed-list"></div>
+    <div class="empty" id="empty-msg" style="display:none;">No feedback submitted yet.</div>
+  </div>
+
+</div>
+
+<script>
+const API = window.location.origin;
+
+async function loadDashboard() {
+  try {
+    const statsRes = await fetch(`${API}/dashboard-stats`);
+    const stats = await statsRes.json();
+
+    document.getElementById("total-count").innerText = stats.total;
+    document.getElementById("avg-risk").innerText = stats.avg_risk_score;
+    document.getElementById("negative-count").innerText = stats.sentiment_breakdown?.Negative || 0;
+
+    const feedRes = await fetch(`${API}/all-feedback`);
+    const feedData = await feedRes.json();
+    const allFeedback = feedData.feedback.reverse();
+
+    if (allFeedback.length === 0) {
+      document.getElementById("empty-msg").style.display = "block";
+      return;
+    }
+
+    const highRisk = allFeedback.filter(item => item.risk_score >= 70);
+    if (highRisk.length > 0) {
+      const AVG_REPLACEMENT_COST = 450000; // estimated cost to replace one employee (INR)
+      const totalCostRisk = highRisk.length * AVG_REPLACEMENT_COST;
+
+      document.getElementById("alert-box").style.display = "block";
+      document.getElementById("alert-list").innerHTML = `
+        <div class="emp" style="font-size:15px; margin-bottom:10px;">
+          Estimated replacement cost if these employees resign: <b>&#8377;${totalCostRisk.toLocaleString('en-IN')}</b>
+        </div>
+        ` + highRisk.map(item =>
+          `<div class="emp">&bull; <b>${item.employee_name}</b> (${item.department}) &mdash; Risk score: ${item.risk_score}/100</div>`
+        ).join("");
+    }
+
+    const list = document.getElementById("feed-list");
+    list.innerHTML = "";
+    allFeedback.slice(0, 6).forEach(item => {
+      list.innerHTML += `
+        <div class="feedback-item ${item.sentiment}">
+          <div class="top-row">
+            <span>${item.employee_name} &bull; ${item.department}</span>
+            <span class="badge ${item.sentiment}">${item.sentiment}</span>
+          </div>
+          <div class="summary">${item.summary}</div>
+        </div>
+      `;
+    });
+  } catch (err) {
+    console.error("Error loading dashboard:", err);
+    document.getElementById("empty-msg").innerText = "Error loading data: " + err;
+    document.getElementById("empty-msg").style.display = "block";
+  }
+}
+
+function logout() {
+  sessionStorage.removeItem("loggedIn");
+  window.location.href = "login.html";
+}
+
+loadDashboard();
+</script>
+
+</body>
+</html>

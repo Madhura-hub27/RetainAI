@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PulseIQ - Register</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="auth-shell">
+  <svg class="pulse-watermark" style="width:60%;max-width:700px;" viewBox="0 0 700 200" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M0 100 H250 L280 40 L320 160 L350 100 H700" stroke="#e3a53f" stroke-width="1.5" fill="none"/>
+  </svg>
+  <div class="auth-box">
+    <div class="logo-mark">
+      <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="1" y="1" width="38" height="38" rx="9" stroke="#e3a53f" stroke-width="1.5"/>
+        <path d="M4 20H12L15 10L21 30L24 20H36" stroke="#e3a53f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <h2>PulseIQ</h2>
+    <p>Create HR account</p>
+
+    <label for="username">Username</label>
+    <input type="text" id="username" placeholder="Choose username">
+
+    <label for="password">Password</label>
+    <div class="password-wrapper">
+      <input type="password" id="password" placeholder="Choose password">
+      <span onclick="togglePassword('password', this)">Show</span>
+    </div>
+
+    <label for="confirm_password">Confirm password</label>
+    <div class="password-wrapper">
+      <input type="password" id="confirm_password" placeholder="Confirm password">
+      <span onclick="togglePassword('confirm_password', this)">Show</span>
+    </div>
+
+    <button class="primary" onclick="registerUser()">Register</button>
+    <div class="msg error" id="error-msg"></div>
+    <div class="msg success" id="success-msg"></div>
+
+    <div class="link">Already have an account? <a onclick="window.location.href='login.html'">Login here</a></div>
+  </div>
+</div>
+
+<script>
+const API = window.location.origin;
+
+function togglePassword(fieldId, icon) {
+  const field = document.getElementById(fieldId);
+  if (field.type === "password") {
+    field.type = "text";
+    icon.textContent = "Hide";
+  } else {
+    field.type = "password";
+    icon.textContent = "Show";
+  }
+}
+
+async function registerUser() {
+  const username = document.getElementById("username").value.trim();
+  const password = document.getElementById("password").value;
+  const confirm_password = document.getElementById("confirm_password").value;
+
+  const errorMsg = document.getElementById("error-msg");
+  const successMsg = document.getElementById("success-msg");
+  errorMsg.style.display = "none";
+  successMsg.style.display = "none";
+
+  if (!username || !password) {
+    errorMsg.innerText = "Please fill all fields";
+    errorMsg.style.display = "block";
+    return;
+  }
+  if (password !== confirm_password) {
+    errorMsg.innerText = "Passwords do not match";
+    errorMsg.style.display = "block";
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API}/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password })
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      errorMsg.innerText = data.detail || "Registration failed";
+      errorMsg.style.display = "block";
+      return;
+    }
+
+    successMsg.innerText = "Registered successfully! Redirecting to login...";
+    successMsg.style.display = "block";
+    setTimeout(() => window.location.href = "login.html", 1500);
+
+  } catch (err) {
+    errorMsg.innerText = "Server error, try again";
+    errorMsg.style.display = "block";
+  }
+}
+</script>
+
+</body>
+</html>
