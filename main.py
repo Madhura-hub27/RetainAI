@@ -197,7 +197,7 @@ def ask_agent(query: ChatQuery):
 
         context_data = json.dumps(records[-30:], indent=2) if records else "No feedback data available yet."
 
-        prompt = f"""You are PulseIQ, an HR analytics assistant agent. You have access to employee feedback data below.
+        prompt = f"""You are RetainIQ, an HR analytics assistant agent. You have access to employee feedback data below.
 
 Feedback Data:
 {context_data}
