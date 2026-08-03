@@ -3,3 +3,4 @@ uvicorn
 pymongo
 groq
 python-dotenv
+certifi

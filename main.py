@@ -6,6 +6,7 @@ from pymongo import MongoClient
 from groq import Groq
 from dotenv import load_dotenv
 import os
+import certifi
 import json
 import hashlib
 from datetime import datetime
@@ -23,7 +24,9 @@ app.add_middleware(
 
 groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
-mongo_client = MongoClient(os.getenv("MONGO_URI"))
+import certifi
+
+mongo_client = MongoClient(os.getenv("MONGO_URI"), tlsCAFile=certifi.where())
 db = mongo_client[os.getenv("DATABASE_NAME")]
 feedback_collection = db["feedback"]
 users_collection = db["users"]
