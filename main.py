@@ -22,9 +22,9 @@ app.add_middleware(
 
 mongo_uri = os.getenv("MONGO_URI")
 if mongo_uri and mongo_uri.startswith("mongodb+srv://"):
-    mongo_client = MongoClient(mongo_uri, tlsCAFile=certifi.where())
+    mongo_client = MongoClient(mongo_uri, tlsCAFile=certifi.where(), serverSelectionTimeoutMS=5000)
 else:
-    mongo_client = MongoClient(mongo_uri)
+    mongo_client = MongoClient(mongo_uri, serverSelectionTimeoutMS=5000)
 db = mongo_client[os.getenv("DATABASE_NAME", "retainiq_db")]
 feedback_collection = db["feedback"]
 users_collection = db["users"]
