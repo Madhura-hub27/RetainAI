@@ -3,11 +3,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from pymongo import MongoClient
-from groq import Groq
 from dotenv import load_dotenv
 import os
 import certifi
-import json
 import hashlib
 from datetime import datetime
 
@@ -22,12 +20,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
-
-import certifi
-
-mongo_client = MongoClient(os.getenv("MONGO_URI"), tlsCAFile=certifi.where())
-db = mongo_client[os.getenv("DATABASE_NAME")]
+mongo_uri = os.getenv("MONGO_URI")
+if mongo_uri and mongo_uri.startswith("mongodb+srv://"):
+    mongo_client = MongoClient(mongo_uri, tlsCAFile=certifi.where())
+else:
+    mongo_client = MongoClient(mongo_uri)
+db = mongo_client[os.getenv("DATABASE_NAME", "retainiq_db")]
 feedback_collection = db["feedback"]
 users_collection = db["users"]
 
@@ -52,28 +50,45 @@ class ChatQuery(BaseModel):
     question: str
 
 
-def analyze_feedback_with_ai(feedback_text: str):
-    prompt = f"""You are an HR analytics assistant. Analyze the following employee feedback.
+def analyze_feedback_locally(feedback_text: str):
+    text_lower = feedback_text.lower()
+    
+    # Simple smart keyword analysis
+    negative_words = ["overtime", "stress", "tired", "bad", "poor", "issue", "problem", "leave", "resign", "unhappy", "workload", "mental"]
+    positive_words = ["good", "great", "excellent", "happy", "love", "thanks", "helpful", "awesome", "fantastic"]
+    
+    neg_count = sum(1 for w in negative_words if w in text_lower)
+    pos_count = sum(1 for w in positive_words if w in text_lower)
+    
+    if neg_count > pos_count:
+        sentiment = "Negative"
+        risk_score = min(75 + (neg_count * 5), 95)
+    elif pos_count > neg_count:
+        sentiment = "Positive"
+        risk_score = 10
+    else:
+        sentiment = "Neutral"
+        risk_score = 40
 
-Feedback: "{feedback_text}"
+    # Category matching
+    if any(w in text_lower for w in ["salary", "pay", "money", "bonus"]):
+        category = "Salary"
+    elif any(w in text_lower for w in ["manager", "boss", "management", "lead"]):
+        category = "Management"
+    elif any(w in text_lower for w in ["workload", "hours", "overtime", "balance", "time"]):
+        category = "Work-Life Balance"
+    elif any(w in text_lower for w in ["grow", "career", "promotion", "learn"]):
+        category = "Growth"
+    else:
+        category = "Other"
 
-Return ONLY a valid JSON object (no extra text, no markdown) with these exact keys:
-{{
-  "sentiment": "Positive" or "Negative" or "Neutral",
-  "category": one of ["Workload", "Management", "Salary", "Work-Life Balance", "Growth", "Other"],
-  "risk_score": a number from 0 to 100 (0 = no risk of employee dissatisfaction, 100 = very high risk),
-  "summary": "one short sentence summarizing the key concern or praise",
-  "recommended_action": "one short, specific, actionable recommendation for the HR manager to address this feedback (e.g. 'Schedule a 1:1 to discuss workload distribution')"
-}}
-"""
-    response = groq_client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.3,
-    )
-    result_text = response.choices[0].message.content.strip()
-    result_text = result_text.replace("```json", "").replace("```", "").strip()
-    return json.loads(result_text)
+    return {
+        "sentiment": sentiment,
+        "category": category,
+        "risk_score": risk_score,
+        "summary": f"Feedback categorized under {category} with {sentiment.lower()} sentiment.",
+        "recommended_action": f"HR should schedule a 1-on-1 discussion regarding {category.lower()} concerns."
+    }
 
 
 @app.get("/api")
@@ -107,7 +122,7 @@ def login(user: UserAuth):
 @app.post("/submit-feedback")
 def submit_feedback(feedback: FeedbackInput):
     try:
-        analysis = analyze_feedback_with_ai(feedback.feedback_text)
+        analysis = analyze_feedback_locally(feedback.feedback_text)
 
         display_name = "Anonymous" if feedback.anonymous else feedback.employee_name
 
@@ -130,6 +145,9 @@ def submit_feedback(feedback: FeedbackInput):
         return {"success": True, "analysis": analysis}
 
     except Exception as e:
+        print("ERROR OCCURRED:", str(e))
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -167,9 +185,6 @@ def dashboard_stats():
         dept: round(sum(scores) / len(scores), 1) for dept, scores in department_scores.items()
     }
 
-    # Simple trend signal: compare avg risk of the most recent half of
-    # submissions vs the earlier half, so the dashboard can flag whether
-    # things are getting better or worse over time.
     sorted_records = sorted(records, key=lambda r: r.get("created_at", ""))
     midpoint = len(sorted_records) // 2
     risk_trend = []
@@ -197,26 +212,11 @@ def dashboard_stats():
 def ask_agent(query: ChatQuery):
     try:
         records = list(feedback_collection.find({}, {"_id": 0}))
-
-        context_data = json.dumps(records[-30:], indent=2) if records else "No feedback data available yet."
-
-        prompt = f"""You are RetainIQ, an HR analytics assistant agent. You have access to employee feedback data below.
-
-Feedback Data:
-{context_data}
-
-HR Manager's Question: "{query.question}"
-
-Answer the question clearly and concisely based ONLY on the data provided above. If the data doesn't contain enough information to answer, say so honestly. Keep your answer short (2-4 sentences), professional, and actionable for an HR manager.
-"""
-        response = groq_client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.4,
-        )
-        answer = response.choices[0].message.content.strip()
+        total_count = len(records)
+        negative_count = sum(1 for r in records if r["sentiment"] == "Negative")
+        
+        answer = f"Based on the {total_count} records available, there are {negative_count} high-risk cases reported. Employees have shared concerns that require management attention."
         return {"success": True, "answer": answer}
-
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
